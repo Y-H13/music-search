@@ -13,16 +13,24 @@ def index():
 def get_scenes():
     # URLから '?tag=' の値を受け取る（指定がない場合は None）
     search_tag = request.args.get('tag')
+    search_title=request.args.get('title')
     
     conn = sqlite3.connect('music_scenes.db')
     cursor = conn.cursor()
     
-    # タグが指定されている場合は絞り込み、指定がない場合は全て取得
+    #検索条件の組み立て
+    query += 'AND tag LIKE ?'
+    params=[]
+    
     if search_tag:
-        # 部分一致検索（例：「変身」で検索すると「変身シーン」もヒットする）
-        cursor.execute("SELECT * FROM scenes WHERE tag LIKE ?", ('%' + search_tag + '%',))
-    else:
-        cursor.execute('SELECT * FROM scenes')
+        query += 'AND tag LIKE ?'
+        params.append('%' + search_tag + '%')
+
+    if search_title:
+        query += 'AND title LIKE ?'
+        params.append('%' + search_title + '%')  
+
+    cursor.execute(query, tuple(params))  
     
     scenes = []
     for row in cursor.fetchall():
