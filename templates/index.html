@@ -2,40 +2,69 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>MV Scene Player</title>
+    <title>Vibe-Mixer: シーン検索エンジン</title>
     <style>
-        body { font-family: sans-serif; background-color: #1a1a1a; color: #ffffff; padding: 20px; }
-        #player-container { margin-bottom: 20px; }
-        .scene-card { background: #333333; padding: 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; }
-        .scene-card:hover { background: #444444; }
-        .tag { display: inline-block; background: #e50914; padding: 5px 10px; border-radius: 20px; font-size: 0.8em; margin-bottom: 10px; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #121212; color: #ffffff; padding: 20px; max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        
+        #player-container { margin: 20px 0; display: flex; justify-content: center; background: #000; border-radius: 10px; overflow: hidden; }
+        
+        /* 検索ボックスのデザイン */
+        .search-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        #title-input { padding: 10px; border-radius: 5px; border: 1px solid #444; background: #222; color: #fff; width: 60%; font-size: 1em; }
+        .search-btn { padding: 10px 20px; border-radius: 5px; border: none; background: #e50914; color: #fff; cursor: pointer; font-weight: bold; }
+        .search-btn:hover { background: #f6121d; }
+
+        /* フィルターボタンのデザイン */
+        #filter-buttons { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; justify-content: center; }
+        .filter-btn { background: #2b2b2b; color: #fff; border: 1px solid #444; padding: 8px 16px; border-radius: 30px; cursor: pointer; transition: 0.2s; }
+        .filter-btn:hover { background: #e50914; border-color: #e50914; }
+        
+        /* シーンカードのデザイン */
+        #scene-list { display: grid; gap: 15px; }
+        .scene-card { background: #1e1e1e; padding: 15px; border-radius: 8px; cursor: pointer; border-left: 4px solid #444; transition: 0.2s; }
+        .scene-card:hover { background: #2a2a2a; border-left-color: #e50914; transform: translateX(5px); }
+        .tag { display: inline-block; background: #444; padding: 4px 10px; border-radius: 12px; font-size: 0.8em; margin-bottom: 8px; color: #ddd; }
+        .title-badge { display: inline-block; background: #0056b3; padding: 4px 10px; border-radius: 4px; font-size: 0.8em; margin-bottom: 8px; margin-left: 5px; color: #fff; }
+        .description { font-size: 1.1em; margin: 0 0 5px 0; }
+        .time { font-size: 0.85em; color: #888; margin: 0; }
     </style>
 </head>
 <body>
-    <h1>MV シーン検索プレイヤー</h1>
+    <h1>🎬 Vibe-Mixer: シーン検索</h1>
     
+    <div class="search-container">
+        <input type="text" id="title-input" placeholder="曲名で検索 (例: Awesome Song)" onkeypress="handleKeyPress(event)">
+        <button class="search-btn" onclick="fetchScenes()">検索</button>
+    </div>
+
+    <div id="filter-buttons">
+        <button class="filter-btn" onclick="setTag('')">🌐 すべて表示</button>
+        <button class="filter-btn" onclick="setTag('変身')">🔥 変身シーン</button>
+        <button class="filter-btn" onclick="setTag('ダンス')">💃 圧倒的なダンス</button>
+        <button class="filter-btn" onclick="setTag('切ない')">💧 切ない</button>
+    </div>
+
     <div id="player-container">
         <div id="player"></div>
     </div>
 
-    <div id="scene-list">
-        </div>
+    <div id="scene-list"></div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         let player;
+        let currentTag = ''; // 現在選択されているタグを記憶する変数
         
-        // YouTube APIの準備が完了した時に呼ばれる関数
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
-                height: '360',
+                height: '390',
                 width: '640',
-                videoId: '', // 初期状態は空
+                videoId: '', 
                 playerVars: { 'rel': 0, 'autoplay': 1 }
             });
         }
 
-        // シーンのカードをクリックした時に動画を再生する関数
         function playScene(videoId, startTime) {
             if (player && player.loadVideoById) {
                 player.loadVideoById({
@@ -45,24 +74,56 @@
             }
         }
 
-        // Python(バックエンド)からデータを取得して画面に並べる処理
-        fetch('/api/scenes')
-            .then(response => response.json())
-            .then(data => {
-                const sceneList = document.getElementById('scene-list');
-                data.forEach(scene => {
-                    const card = document.createElement('div');
-                    card.className = 'scene-card';
-                    card.innerHTML = `
-                        <div class="tag">${scene.tag}</div>
-                        <h3>${scene.description}</h3>
-                        <p>再生位置: ${scene.start_time}秒</p>
-                    `;
-                    // クリックイベントを登録
-                    card.onclick = () => playScene(scene.video_id, scene.start_time);
-                    sceneList.appendChild(card);
+        // Enterキーで検索を実行する関数
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                fetchScenes();
+            }
+        }
+
+        // タグボタンが押された時の関数
+        function setTag(tag) {
+            currentTag = tag;
+            fetchScenes();
+        }
+
+        // データベースから条件に合わせてシーンを読み込む関数
+        function fetchScenes() {
+            const titleInput = document.getElementById('title-input').value;
+            
+            // URLのパラメータ（?tag=...&title=...）を安全に組み立てる
+            const params = new URLSearchParams();
+            if (currentTag) params.append('tag', currentTag);
+            if (titleInput) params.append('title', titleInput);
+
+            fetch(`/api/scenes?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    const sceneList = document.getElementById('scene-list');
+                    sceneList.innerHTML = ''; 
+
+                    if (data.length === 0) {
+                        sceneList.innerHTML = '<p style="text-align:center; color:#888;">見つかりませんでした。</p>';
+                        return;
+                    }
+
+                    data.forEach(scene => {
+                        const card = document.createElement('div');
+                        card.className = 'scene-card';
+                        card.innerHTML = `
+                            <div class="tag"># ${scene.tag}</div>
+                            <div class="title-badge">🎵 ${scene.title}</div>
+                            <h3 class="description">${scene.description}</h3>
+                            <p class="time">▶️ ${scene.start_time}秒から再生</p>
+                        `;
+                        card.onclick = () => playScene(scene.video_id, scene.start_time);
+                        sceneList.appendChild(card);
+                    });
                 });
-            });
+        }
+
+        // ページを開いた直後に一度全データを読み込む
+        fetchScenes();
     </script>
 </body>
 </html>

@@ -19,15 +19,15 @@ def get_scenes():
     cursor = conn.cursor()
     
     #検索条件の組み立て
-    query += 'AND tag LIKE ?'
+    query += 'SELECT * FROM scenes WHERE 1=1'
     params=[]
     
     if search_tag:
-        query += 'AND tag LIKE ?'
+        query += ' AND tag LIKE ?'
         params.append('%' + search_tag + '%')
 
     if search_title:
-        query += 'AND title LIKE ?'
+        query += ' AND title LIKE ?'
         params.append('%' + search_title + '%')  
 
     cursor.execute(query, tuple(params))  
