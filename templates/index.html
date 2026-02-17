@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>MV Scene Player</title>
+    <style>
+        body { font-family: sans-serif; background-color: #1a1a1a; color: #ffffff; padding: 20px; }
+        #player-container { margin-bottom: 20px; }
+        .scene-card { background: #333333; padding: 15px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; }
+        .scene-card:hover { background: #444444; }
+        .tag { display: inline-block; background: #e50914; padding: 5px 10px; border-radius: 20px; font-size: 0.8em; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>MV シーン検索プレイヤー</h1>
+    
+    <div id="player-container">
+        <div id="player"></div>
+    </div>
+
+    <div id="scene-list">
+        </div>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        let player;
+        
+        // YouTube APIの準備が完了した時に呼ばれる関数
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '360',
+                width: '640',
+                videoId: '', // 初期状態は空
+                playerVars: { 'rel': 0, 'autoplay': 1 }
+            });
+        }
+
+        // シーンのカードをクリックした時に動画を再生する関数
+        function playScene(videoId, startTime) {
+            if (player && player.loadVideoById) {
+                player.loadVideoById({
+                    'videoId': videoId,
+                    'startSeconds': startTime
+                });
+            }
+        }
+
+        // Python(バックエンド)からデータを取得して画面に並べる処理
+        fetch('/api/scenes')
+            .then(response => response.json())
+            .then(data => {
+                const sceneList = document.getElementById('scene-list');
+                data.forEach(scene => {
+                    const card = document.createElement('div');
+                    card.className = 'scene-card';
+                    card.innerHTML = `
+                        <div class="tag">${scene.tag}</div>
+                        <h3>${scene.description}</h3>
+                        <p>再生位置: ${scene.start_time}秒</p>
+                    `;
+                    // クリックイベントを登録
+                    card.onclick = () => playScene(scene.video_id, scene.start_time);
+                    sceneList.appendChild(card);
+                });
+            });
+    </script>
+</body>
+</html>

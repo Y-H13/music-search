@@ -14,7 +14,7 @@ def get_scenes():
     # URLから '?tag=' の値を受け取る（指定がない場合は None）
     search_tag = request.args.get('tag')
     
-    conn = sqlite3.connect('mv_scenes.db')
+    conn = sqlite3.connect('music_scenes.db')
     cursor = conn.cursor()
     
     # タグが指定されている場合は絞り込み、指定がない場合は全て取得
@@ -29,9 +29,10 @@ def get_scenes():
         scenes.append({
             "id": row[0],
             "video_id": row[1],
-            "start_time": row[2],
-            "tag": row[3],
-            "description": row[4]
+            "title": row[2],
+            "start_time": row[3],
+            "tag": row[4],
+            "description": row[5]
         })
     
     conn.close()
