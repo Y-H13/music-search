@@ -19,12 +19,8 @@ CREATE TABLE IF NOT EXISTS scenes(
 # 3. サンプルデータの準備
 # 実際のYouTube ID（例：dQw4w9WgXcQ）に置き換えて使用します
 sample_data = [
-# 例1: 櫻坂46 『Start over!』 (公式MV)
-    ('YJRFD1SAd-8', 'Start over!', 75, 'ダンス', '圧倒的な群舞とセンターの気迫'),
-    # 例2: 櫻坂46 『承認欲求』 (公式MV)
-    ('x_Zsyu2K5G4', '承認欲求', 215, '切ない', 'ラスサビ前の感情的な表現'),
-    # 例3: 櫻坂46 『何歳の頃に戻りたいのか？』 (公式MV)
-    ('7R3U7d7dEWE', '何歳の頃に戻りたいのか？', 45, 'ダンス', 'ダイナミックなフォーメーション変化')
+('M7lc1UVf-VE', 'YouTube Developers Test', 10, 'テスト', 'YouTube公式のAPIテスト用動画（10秒から）'),
+    ('M7lc1UVf-VE', 'YouTube Developers Test', 60, 'テスト2', 'YouTube公式のAPIテスト用動画（60秒から）')
 ]
 
 # 4. データを一括で挿入
