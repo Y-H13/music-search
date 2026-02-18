@@ -61,18 +61,22 @@
                 height: '390',
                 width: '640',
                 videoId: '', 
-                playerVars: { 'rel': 0, 'autoplay': 1 }
+                // [変更] autoplay を 1 から 0 に変更します
+                playerVars: { 'rel': 0, 'autoplay': 0 } 
             });
         }
 
         function playScene(videoId, startTime) {
-            if (player && player.loadVideoById) {
-                player.loadVideoById({
+            // [変更] loadVideoById を cueVideoById に変更します
+            if (player && player.cueVideoById) {
+                player.cueVideoById({
                     'videoId': videoId,
                     'startSeconds': startTime
                 });
             }
         }
+        
+        
 
         // Enterキーで検索を実行する関数
         function handleKeyPress(event) {
