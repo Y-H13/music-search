@@ -2,10 +2,10 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Emotion Search</title>
+    <title>Vibe-Mixer: 楽曲レコメンドエンジン</title>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #121212; color: #ffffff; padding: 20px; max-width: 800px; margin: 0 auto; }
-        h1 { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        h1 { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 30px; }
         
         #player-container { margin: 20px 0; display: flex; justify-content: center; background: #000; border-radius: 10px; overflow: hidden; }
         
@@ -15,119 +15,111 @@
         .search-btn { padding: 10px 20px; border-radius: 5px; border: none; background: #e50914; color: #fff; cursor: pointer; font-weight: bold; }
         .search-btn:hover { background: #f6121d; }
 
-        /* フィルターボタンのデザイン */
+        /* 気分（タグ）ボタンのデザイン */
         #filter-buttons { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; justify-content: center; }
         .filter-btn { background: #2b2b2b; color: #fff; border: 1px solid #444; padding: 8px 16px; border-radius: 30px; cursor: pointer; transition: 0.2s; }
         .filter-btn:hover { background: #e50914; border-color: #e50914; }
         
-        /* シーンカードのデザイン */
-        #scene-list { display: grid; gap: 15px; }
-        .scene-card { background: #1e1e1e; padding: 15px; border-radius: 8px; cursor: pointer; border-left: 4px solid #444; transition: 0.2s; }
-        .scene-card:hover { background: #2a2a2a; border-left-color: #e50914; transform: translateX(5px); }
+        /* 楽曲カードのデザイン */
+        #track-list { display: grid; gap: 15px; }
+        .track-card { background: #1e1e1e; padding: 15px; border-radius: 8px; cursor: pointer; border-left: 4px solid #444; transition: 0.2s; }
+        .track-card:hover { background: #2a2a2a; border-left-color: #e50914; transform: translateX(5px); }
         .tag { display: inline-block; background: #444; padding: 4px 10px; border-radius: 12px; font-size: 0.8em; margin-bottom: 8px; color: #ddd; }
-        .title-badge { display: inline-block; background: #0056b3; padding: 4px 10px; border-radius: 4px; font-size: 0.8em; margin-bottom: 8px; margin-left: 5px; color: #fff; }
-        .description { font-size: 1.1em; margin: 0 0 5px 0; }
-        .time { font-size: 0.85em; color: #888; margin: 0; }
+        .title { font-size: 1.3em; margin: 0 0 8px 0; font-weight: bold; color: #fff; }
+        .description { font-size: 1em; color: #bbb; margin: 0; line-height: 1.4; }
     </style>
 </head>
 <body>
-    <h1>Emotion Search</h1>
+    <h1>🎵 櫻坂46 楽曲レコメンド</h1>
     
     <div class="search-container">
-        <input type="text" id="title-input" placeholder="曲名で検索 (例: Awesome Song)" onkeypress="handleKeyPress(event)">
-        <button class="search-btn" onclick="fetchScenes()">検索</button>
+        <input type="text" id="title-input" placeholder="曲名で探す (例: 承認欲求)" onkeypress="handleKeyPress(event)">
+        <button class="search-btn" onclick="fetchTracks()">検索</button>
     </div>
 
     <div id="filter-buttons">
         <button class="filter-btn" onclick="setTag('')">🌐 すべて表示</button>
-        <button class="filter-btn" onclick="setTag('変身')">🔥 変身シーン</button>
-        <button class="filter-btn" onclick="setTag('ダンス')">💃 圧倒的なダンス</button>
-        <button class="filter-btn" onclick="setTag('切ない')">💧 切ない</button>
+        <button class="filter-btn" onclick="setTag('覚悟')">🔥 覚悟を決める</button>
+        <button class="filter-btn" onclick="setTag('葛藤')">💧 葛藤に寄り添う</button>
+        <button class="filter-btn" onclick="setTag('前向き')">✨ 前向きになりたい</button>
     </div>
 
     <div id="player-container">
         <div id="player"></div>
     </div>
 
-    <div id="scene-list"></div>
+    <div id="track-list"></div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         let player;
-        let currentTag = ''; // 現在選択されているタグを記憶する変数
+        let currentTag = '';
         
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '390',
                 width: '640',
                 videoId: '', 
-                // [変更] autoplay を 1 から 0 に変更します
-                playerVars: { 'rel': 0, 'autoplay': 0 } 
+                // 公式MVがエラーになりにくいよう、自動再生をOFFにして待機させます
+                playerVars: { 'rel': 0, 'autoplay': 0 }
             });
         }
 
-        function playScene(videoId, startTime) {
-            // [変更] loadVideoById を cueVideoById に変更します
+        // 曲単体を最初から再生（サムネイルを表示して待機する設定）
+        function playTrack(videoId) {
             if (player && player.cueVideoById) {
                 player.cueVideoById({
-                    'videoId': videoId,
-                    'startSeconds': startTime
+                    'videoId': videoId
                 });
             }
         }
-        
-        
 
-        // Enterキーで検索を実行する関数
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
-                fetchScenes();
+                fetchTracks();
             }
         }
 
-        // タグボタンが押された時の関数
         function setTag(tag) {
             currentTag = tag;
-            fetchScenes();
+            fetchTracks();
         }
 
-        // データベースから条件に合わせてシーンを読み込む関数
-        function fetchScenes() {
+        // /api/tracks からデータを取得する
+        function fetchTracks() {
             const titleInput = document.getElementById('title-input').value;
             
-            // URLのパラメータ（?tag=...&title=...）を安全に組み立てる
             const params = new URLSearchParams();
             if (currentTag) params.append('tag', currentTag);
             if (titleInput) params.append('title', titleInput);
 
-            fetch(`/api/scenes?${params.toString()}`)
+            fetch(`/api/tracks?${params.toString()}`)
                 .then(response => response.json())
                 .then(data => {
-                    const sceneList = document.getElementById('scene-list');
-                    sceneList.innerHTML = ''; 
+                    const trackList = document.getElementById('track-list');
+                    trackList.innerHTML = ''; 
 
                     if (data.length === 0) {
-                        sceneList.innerHTML = '<p style="text-align:center; color:#888;">見つかりませんでした。</p>';
+                        trackList.innerHTML = '<p style="text-align:center; color:#888;">見つかりませんでした。</p>';
                         return;
                     }
 
-                    data.forEach(scene => {
+                    data.forEach(track => {
                         const card = document.createElement('div');
-                        card.className = 'scene-card';
+                        card.className = 'track-card';
                         card.innerHTML = `
-                            <div class="tag"># ${scene.tag}</div>
-                            <div class="title-badge">🎵 ${scene.title}</div>
-                            <h3 class="description">${scene.description}</h3>
-                            <p class="time">▶️ ${scene.start_time}秒から再生</p>
+                            <div class="tag"># ${track.tag}</div>
+                            <h2 class="title">${track.title}</h2>
+                            <p class="description">${track.description}</p>
                         `;
-                        card.onclick = () => playScene(scene.video_id, scene.start_time);
-                        sceneList.appendChild(card);
+                        // カードをクリックしたら曲のMVを読み込む
+                        card.onclick = () => playTrack(track.video_id);
+                        trackList.appendChild(card);
                     });
                 });
         }
 
-        // ページを開いた直後に一度全データを読み込む
-        fetchScenes();
+        fetchTracks();
     </script>
 </body>
 </html>
